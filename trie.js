@@ -83,13 +83,18 @@ function TrieNode(key) {
     }
   }
 
-  // Recursively deletes every entry containg the given letters
-  // @param letters A set of letters to remove on sight
+  //  -- Custom methods for this wordle solver -- //
+
+  // Recursively deletes every entry containing the given letters, unless that
+  // letter is in the right spot
+  // @param wrongLetters A set of letters to remove on sight
+  // @param correctLetters A 5 letter array of letters in the right positions
+  // @param partialLetters A map mapping correct letters to their incorrect positions
   // @returns the words that remain after removing
-  Trie.prototype.removeIfContains = function(letters) {
+  Trie.prototype.removeIfContains = function(wrongLetters, correctLetters, partialLetters) {
     const remaining = [];
-    let helper = function(node, arr) {
-      if (letters.has(node.key)) {
+    let helper = function(node, index, arr) {
+      if (wrongLetters.has(node.key) && node.key !== correctLetters[index] && !partialLetters.has(node.key)) {
         delete node.parent.children[node.key];
       } else {
         const keys = Object.keys(node.children);
@@ -97,17 +102,94 @@ function TrieNode(key) {
           arr.push(node.getWord());
         } else {
           for (let i = 0; i < keys.length; i++) {
-            helper(node.children[keys[i]], arr);
+            helper(node.children[keys[i]], index + 1, arr);
           }
         }
       }
     };
-    helper(this.root, remaining);
+    helper(this.root, -1, remaining);
+    return remaining;
+  };
+
+  // Removes any word that does not contain the given letters at the specified indices.
+  // @param A 5 letter array containing either null or a letter.
+  // @return An array of the remaining words after filtering.
+  Trie.prototype.removeIfNotCorrect = function(letters) {
+    const remaining = [];
+    let helper = function(node, index, arr) {
+      if (node.end) {
+        arr.push(node.getWord());
+      } else {
+        const keys = Object.keys(node.children);
+        for (let i = 0; i < keys.length; i++) {
+          if (letters[index] !== null && keys[i] !== letters[index]) {
+            delete node.children[keys[i]];
+          } else {
+            helper(node.children[keys[i]], index + 1, arr);
+          }
+        }
+      }
+    };
+    helper(this.root, 0, remaining);
+    return remaining;
+  };
+
+  // Removes any word that does not contain the correct letters in the correct spot
+  // or does not contain partial letters in any spot.
+  // @param correctLetters A 5 letter array containing the correct letters in the correct spots
+  // @param partialLetters A map of partially correct letters to their invalid indices
+  // @return An array of the remaining words after filtering.
+  Trie.prototype.removeIfDoesNotContain = function(correctLetters, partialLetters) {
+    const remaining = [];
+    // @param lastOneChildParent is the last ancestor with 1 child. When deleting a word
+    // that doesn't contain a partial letter, we want to delete up the trie as high as possible.
+    // @param lastOneChildParentIndex is the index of the parent relative to our word.
+    let helper = function(node, lastOneChildParent, lastOneChildParentIndex, index, arr) {
+      if (node.end) {
+        let word = node.getWord();
+        // the word is still valid
+        let valid = true;
+        // find each letter in partial letters. If not, word is invalid
+        for (let [k, v] of partialLetters) {
+          let letterFound = false;
+          for (let i = 0; i < word.length; i++) {
+            // letter found: not in invalid index, not in correct letters
+            // if the letter is both in correctLetters and partialLetters, we need
+            // the duplicated letter in our word
+            if (word[i] === k && !v.includes(i) && correctLetters[i] !== word[i]) {
+              letterFound = true;
+              break;
+            }
+          }
+          if (!letterFound) {
+            valid = false;
+            break;
+          }
+        }
+        if (!valid) {
+          delete lastOneChildParent.children[word[lastOneChildParentIndex]];
+        } else {
+          arr.push(node.getWord());
+        }
+      } else {
+        const keys = Object.keys(node.children);
+        for (let i = 0; i < keys.length; i++) {
+          if (correctLetters[index] !== null && keys[i] !== correctLetters[index]) {
+            delete node.children[keys[i]];
+          } else {
+            lastOneChildParent = keys.length > 1 ? node : lastOneChildParent;
+            lastOneChildParentIndex = keys.length > 1 ? index : lastOneChildParentIndex;
+            helper(node.children[keys[i]], lastOneChildParent, lastOneChildParentIndex, index + 1, arr);
+          }
+        }
+      }
+    };
+    helper(this.root, this.root, 0, 0, remaining);
     return remaining;
   };
 
   // Recursively removes words if they have the given letter in an invalid index
-  // @param letters A set of letters to remove on sight
+  // @param partialLetters A map of partially correct letters to their invalid indices
   // @returns the words that remain after removing
   Trie.prototype.removeInvalidLetterIndices = function(partialLetters) {
     const remaining = [];

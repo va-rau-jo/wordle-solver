@@ -3,6 +3,8 @@ module.exports = [
     'aalii',
     'aargh',
     'abaca',
+    'acaba',
+    'acabb',
     'abaci',
     'aback',
     'abaft',
