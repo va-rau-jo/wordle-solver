@@ -1,10 +1,10 @@
-const {Builder, By, Key} = require('selenium-webdriver');
+const { Builder, By, Key } = require('selenium-webdriver');
 
 const BrowserDriver = require('./browserDriver');
 const Trie = require('./trie');
-const answers = require('./data/answers'); 
-const testWords = require('./data/testwords'); 
-const words = require('./data/words'); 
+const answers = require('./data/answers');
+const testWords = require('./data/testwords');
+const words = require('./data/words');
 
 // const FIRST_GUESS = 'alien';
 const FIRST_GUESS = 'rates';
@@ -34,8 +34,10 @@ let rowNum;
 let trie;
 // Set of wrong letters after the current guess
 let wrongLetters;
-let loop  = true;
-const timeout = function (ms) { return new Promise(resolve => setTimeout(resolve, ms)); };
+let loop = true;
+const timeout = function (ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+};
 
 // Main execution function
 (async function main() {
@@ -65,7 +67,7 @@ const timeout = function (ms) { return new Promise(resolve => setTimeout(resolve
                 await driver.clickPlayAgain();
             } else {
                 currentStreak = 0;
-                console.log("STREAK: " + highestStreak);
+                console.log('STREAK: ' + highestStreak);
                 printState();
                 loop = false;
             }
@@ -85,13 +87,14 @@ const timeout = function (ms) { return new Promise(resolve => setTimeout(resolve
 // with our new information.
 async function makeGuess(guess) {
     let element = await driver.getActiveElement();
-    for (let i = 0; i < WORD_SIZE; i++) { // Individually sends keys so browser keeps up.
+    for (let i = 0; i < WORD_SIZE; i++) {
+        // Individually sends keys so browser keeps up.
         await element.sendKeys(guess[i]);
     }
     element.sendKeys(Key.RETURN);
     for (let i = 0; i < WORD_SIZE; i++) {
         let firstRowGuess = await driver.getLetterByIndex(rowNum * 5 + i + 1);
-        let cName = await firstRowGuess.getAttribute("class");
+        let cName = await firstRowGuess.getAttribute('class');
         let letter = (await firstRowGuess.getAttribute('textContent')).toLowerCase();
 
         if (cName.startsWith(Guess.GRAY)) {
@@ -109,7 +112,6 @@ async function makeGuess(guess) {
     rowNum++;
     await timeout(500);
 }
-
 
 // ** Utils ** //
 function genNextGuess() {
@@ -154,13 +156,13 @@ function genNextGuess() {
     let bestWord = '';
     let bestScore = -1;
 
-    allWords.forEach(word => {
+    allWords.forEach((word) => {
         let rank = 0;
         let used = new Set();
         for (let i = 0; i < WORD_SIZE; i++) {
             if (!used.has(word[i])) {
                 let index = rankings.indexOf(word[i]);
-                rank += (index === -1 ? 0 : index);
+                rank += index === -1 ? 0 : index;
                 used.add(word[i]);
             }
         }
@@ -177,7 +179,7 @@ function genNextGuess() {
 // and their frequencies as their corresponding values
 function getLetterOccurrences(words) {
     let map = new Map();
-    words.forEach(word => {
+    words.forEach((word) => {
         for (let i = 0; i < WORD_SIZE; i++) {
             let letter = word[i];
             if (correctLetters[i] !== letter) {
@@ -198,12 +200,13 @@ function getLetterRanking(words) {
     let letters = [];
     let map = getLetterOccurrences(words);
     // Push all letters into the letter array
-    map.forEach((_, k) => { 
-        if (!partialLetters.has(k))
-            letters.push(k); 
+    map.forEach((_, k) => {
+        if (!partialLetters.has(k)) letters.push(k);
     });
     // Sort all the letters by their frequency in remaining trie
-    letters.sort((a, b) => { return map.get(a) - map.get(b); });
+    letters.sort((a, b) => {
+        return map.get(a) - map.get(b);
+    });
     return letters;
 }
 
@@ -219,11 +222,10 @@ function initializeState() {
 function initializeTrie() {
     let data = answers;
     trie = new Trie();
-    for (let i = 0 ; i < data.length; i++) {
+    for (let i = 0; i < data.length; i++) {
         trie.add(data[i]);
     }
 }
-
 
 function printState() {
     console.log(correctLetters);

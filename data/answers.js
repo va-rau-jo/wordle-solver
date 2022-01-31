@@ -2151,6 +2151,5 @@ module.exports = [
     'zippy',
     'zoned',
     'zones',
-    'zooms'
-]; 
-  
+    'zooms',
+];

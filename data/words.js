@@ -9331,5 +9331,5 @@ module.exports = [
     'zowie',
     'zuppa',
     'zuzim',
-    'zymes'
+    'zymes',
 ];
