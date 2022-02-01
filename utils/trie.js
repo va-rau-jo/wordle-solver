@@ -85,8 +85,8 @@ function findAllWords(node, arr) {
 
 //  -- Custom methods for this wordle solver -- //
 
-// Recursively deletes every entry containing the given letters, unless that
-// letter is in the right spot
+// Recursively deletes every entry that contains a letter in wrongLetters, unless that
+// letter is in the right spota and is not in partialLetters
 // @param wrongLetters A set of letters to remove on sight
 // @param correctLetters A 5 letter array of letters in the right positions
 // @param partialLetters A map mapping correct letters to their incorrect positions
@@ -112,29 +112,6 @@ Trie.prototype.removeIfContains = function (wrongLetters, correctLetters, partia
         }
     };
     helper(this.root, -1, remaining);
-    return remaining;
-};
-
-// Removes any word that does not contain the given letters at the specified indices.
-// @param A 5 letter array containing either null or a letter.
-// @return An array of the remaining words after filtering.
-Trie.prototype.removeIfNotCorrect = function (letters) {
-    const remaining = [];
-    let helper = function (node, index, arr) {
-        if (node.end) {
-            arr.push(node.getWord());
-        } else {
-            const keys = Object.keys(node.children);
-            for (let i = 0; i < keys.length; i++) {
-                if (letters[index] !== null && keys[i] !== letters[index]) {
-                    delete node.children[keys[i]];
-                } else {
-                    helper(node.children[keys[i]], index + 1, arr);
-                }
-            }
-        }
-    };
-    helper(this.root, 0, remaining);
     return remaining;
 };
 
@@ -171,6 +148,7 @@ Trie.prototype.removeIfDoesNotContain = function (correctLetters, partialLetters
                 }
             }
             if (!valid) {
+                console.log(node.getWord());
                 delete lastOneChildParent.children[word[lastOneChildParentIndex]];
             } else {
                 arr.push(node.getWord());

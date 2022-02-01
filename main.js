@@ -1,9 +1,11 @@
 const { Builder, By, Key } = require('selenium-webdriver');
+require('chromedriver');
 
-const BrowserDriver = require('./browserDriver');
-const Trie = require('./trie');
+const BrowserDriver = require('./utils/browserDriver');
+const Trie = require('./utils/trie');
 const answers = require('./data/answers');
 const testWords = require('./data/testwords');
+const utils = require('./utils/utils');
 const words = require('./data/words');
 
 // const FIRST_GUESS = 'alien';
@@ -35,9 +37,6 @@ let trie;
 // Set of wrong letters after the current guess
 let wrongLetters;
 let loop = true;
-const timeout = function (ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-};
 
 // Main execution function
 (async function main() {
@@ -49,7 +48,9 @@ const timeout = function (ms) {
             await makeGuess(FIRST_GUESS);
             if (HARD_MODE) {
                 while (!(await driver.isGameOver())) {
-                    await makeGuess(genNextGuess());
+                    await makeGuess(
+                        utils.genGuess(trie, correctLetters, partialLetters, wrongLetters)
+                    );
                 }
             } else {
                 if (!(await driver.isGameOver())) {
@@ -75,10 +76,6 @@ const timeout = function (ms) {
             loop = false;
             console.log(e);
             // await driver.quit();
-        } finally {
-            // setTimeout(async () => {
-            //     await driver.quit();
-            // }, 10000);
         }
     }
 })();
@@ -88,8 +85,7 @@ const timeout = function (ms) {
 async function makeGuess(guess) {
     let element = await driver.getActiveElement();
     for (let i = 0; i < WORD_SIZE; i++) {
-        // Individually sends keys so browser keeps up.
-        await element.sendKeys(guess[i]);
+        await element.sendKeys(guess[i]); // Individually sends keys so browser keeps up.
     }
     element.sendKeys(Key.RETURN);
     for (let i = 0; i < WORD_SIZE; i++) {
@@ -110,104 +106,7 @@ async function makeGuess(guess) {
         }
     }
     rowNum++;
-    await timeout(500);
-}
-
-// ** Utils ** //
-function genNextGuess() {
-    // filter trie of wrong letters and partial letters (in wrong index)
-
-    // jaded
-    // alien -> dares -> fated -> waved -> caged -> maxed -> jaded
-    // dazed
-    // rates -> laced -> waved
-    wrongLetters = new Set();
-    wrongLetters.add('r');
-    wrongLetters.add('t');
-    wrongLetters.add('e');
-    // wrongLetters.add('o');
-    // wrongLetters.add('n');
-    // wrongLetters.add('v');
-    // wrongLetters.add('n');
-    // wrongLetters.add('m');
-    // wrongLetters.add('f');
-    // wrongLetters.add('c');
-    // wrongLetters.add('g');
-    // wrongLetters.add('m');
-    // wrongLetters.add('x');
-    // correctLetters = [null, null, null, null, null];
-    correctLetters = [null, null, null, null, 's'];
-    partialLetters = new Map();
-    partialLetters.set('a', [1]);
-    // partialLetters.set('l', [0]);
-    // partialLetters.set('d', [2]);
-    // partialLetters.set('e', [1, 3, 4]);
-    // partialLetters.set('n', [2, 3, 4]);
-
-    let t = trie.removeIfContains(wrongLetters, correctLetters, partialLetters);
-    // console.log(t.indexOf('entry'));
-    wrongLetters.clear();
-    t = trie.removeInvalidLetterIndices(partialLetters);
-    let allWords = trie.removeIfDoesNotContain(correctLetters, partialLetters);
-    partialLetters.clear();
-    console.log(allWords);
-
-    let rankings = getLetterRanking(allWords);
-    let bestWord = '';
-    let bestScore = -1;
-
-    allWords.forEach((word) => {
-        let rank = 0;
-        let used = new Set();
-        for (let i = 0; i < WORD_SIZE; i++) {
-            if (!used.has(word[i])) {
-                let index = rankings.indexOf(word[i]);
-                rank += index === -1 ? 0 : index;
-                used.add(word[i]);
-            }
-        }
-        if (rank > bestScore) {
-            bestWord = word;
-            bestScore = rank;
-        }
-    });
-    console.log(bestWord);
-    return bestWord;
-}
-
-// Returns a map with the letters left in the trie as the keys,
-// and their frequencies as their corresponding values
-function getLetterOccurrences(words) {
-    let map = new Map();
-    words.forEach((word) => {
-        for (let i = 0; i < WORD_SIZE; i++) {
-            let letter = word[i];
-            if (correctLetters[i] !== letter) {
-                if (map.has(letter)) {
-                    map.set(letter, map.get(letter) + 1);
-                } else {
-                    map.set(letter, 1);
-                }
-            }
-        }
-    });
-    return map;
-}
-
-// Returns a sorted list of the letters in their optimal frequency order
-// Omits partial letters and correct letters
-function getLetterRanking(words) {
-    let letters = [];
-    let map = getLetterOccurrences(words);
-    // Push all letters into the letter array
-    map.forEach((_, k) => {
-        if (!partialLetters.has(k)) letters.push(k);
-    });
-    // Sort all the letters by their frequency in remaining trie
-    letters.sort((a, b) => {
-        return map.get(a) - map.get(b);
-    });
-    return letters;
+    await utils.timeout(500);
 }
 
 // Initialize state to start a new wordle game
