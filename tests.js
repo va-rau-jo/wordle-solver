@@ -51,36 +51,52 @@ function mockGuess(guess, answer) {
         console.log('NO GUESS MADE FOR ' + answer);
     } else {
         console.log('guessing ' + guess);
-        const used = new Map();
+        const correct = new Map();
         for (let i = 0; i < guess.length; i++) {
-            const letter = guess[i];
-            if (letter === answer[i]) {
-                correctLetters[i] = letter;
-                if (used.has(letter)) {
-                    used.set(letter, used.get(letter) + 1);
-                } else {
-                    used.set(letter, 1);
-                }
+            const l = guess[i];
+            if (l === answer[i]) {
+                correctLetters[i] = l;
+                mapAppend(correct, l);
             }
         }
+        console.log(correct);
+        const used = new Map();
         for (let i = 0; i < guess.length; i++) {
-            const letter = guess[i];
-            if (letter !== answer[i]) {
-                let count = countOccurrences(answer, letter);
-                console.log(answer + ' ' + letter);
-                console.log(count);
-                if (used.has(letter) && used.get(letter) < count) {
-                    if (partialLetters.has(letter)) {
-                        partialLetters.get(letter).push(i);
+            const l = guess[i];
+            if (l !== answer[i]) {
+                // "Uses" left of our letter. Removes correctly used instances of the letter
+                // and any partial uses we've made so far
+                let count = countOccurrences(answer, l) - (mapGet(used, l) + mapGet(correct, l));
+                if ((!used.has(l) && count > 0) || used.get(l) < count) {
+                    if (partialLetters.has(l)) {
+                        partialLetters.get(l).push(i);
                     } else {
-                        partialLetters.set(letter, [i]);
+                        partialLetters.set(l, [i]);
                     }
+                    mapAppend(used, l);
                 } else {
-                    wrongLetters.add(letter);
+                    wrongLetters.add(l);
                 }
             }
         }
         printState();
+    }
+}
+
+// Helper function to return 0 if the key is not present in the map, or return the key's value.
+// This logic was being used all over the place
+function mapGet(map, key) {
+    if (map.has(key)) {
+        return map.get(key);
+    }
+    return 0;
+}
+
+function mapAppend(map, val) {
+    if (map.has(val)) {
+        map.set(val, map.get(val) + 1);
+    } else {
+        map.set(val, 1);
     }
 }
 
