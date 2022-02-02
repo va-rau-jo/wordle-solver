@@ -85,12 +85,17 @@ function findAllWords(node, arr) {
 
 //  -- Custom methods for this wordle solver -- //
 
-// Recursively deletes every entry that contains a letter in wrongLetters, unless that
-// letter is in the right spota and is not in partialLetters
-// @param wrongLetters A set of letters to remove on sight
-// @param correctLetters A 5 letter array of letters in the right positions
-// @param partialLetters A map mapping correct letters to their incorrect positions
-// @returns the words that remain after removing
+/*
+  Recursively deletes every entry that contains a letter in wrongLetters, unless that
+  letter is in the right spot and is not in partialLetters.
+  (Guessing 'amass' could return a correct 'a' and a wrong 'a')
+  meaning there is only one a in the word, so don't remove words with 1 a.
+ 
+  @param wrongLetters A set of letters to remove on sight
+  @param correctLetters A 5 letter array of letters in the right positions
+  @param partialLetters A map mapping correct letters to their incorrect positions
+  @returns the words that remain after removing
+*/
 Trie.prototype.removeIfContains = function (wrongLetters, correctLetters, partialLetters) {
     const remaining = [];
     let helper = function (node, index, arr) {
@@ -115,11 +120,14 @@ Trie.prototype.removeIfContains = function (wrongLetters, correctLetters, partia
     return remaining;
 };
 
-// Removes any word that does not contain the correct letters in the correct spot
-// or does not contain partial letters in any spot.
-// @param correctLetters A 5 letter array containing the correct letters in the correct spots
-// @param partialLetters A map of partially correct letters to their invalid indices
-// @return An array of the remaining words after filtering.
+/* 
+  Removes any word that does not contain the correct letters in the correct spot
+  or does not contain partial letters in any spot.
+  
+  @param correctLetters A 5 letter array containing the correct letters in the correct spots
+  @param partialLetters A map of partially correct letters to their invalid indices
+  @return An array of the remaining words after filtering.
+*/
 Trie.prototype.removeIfDoesNotContain = function (correctLetters, partialLetters) {
     const remaining = [];
     // @param lastOneChildParent is the last ancestor with 1 child. When deleting a word
@@ -143,12 +151,13 @@ Trie.prototype.removeIfDoesNotContain = function (correctLetters, partialLetters
                     }
                 }
                 if (!letterFound) {
+                    // console.log("didnt find letter " + k);
                     valid = false;
                     break;
                 }
             }
             if (!valid) {
-                console.log(node.getWord());
+                // console.log("NOT VALID: " + node.getWord());
                 delete lastOneChildParent.children[word[lastOneChildParentIndex]];
             } else {
                 arr.push(node.getWord());
@@ -176,9 +185,12 @@ Trie.prototype.removeIfDoesNotContain = function (correctLetters, partialLetters
     return remaining;
 };
 
-// Recursively removes words if they have the given letter in an invalid index
-// @param partialLetters A map of partially correct letters to their invalid indices
-// @returns the words that remain after removing
+/* 
+  Recursively removes words if they have the given letters in an invalid index
+  
+  @param partialLetters A map of partially correct letters to their invalid indices
+  @returns the words that remain after removing
+*/
 Trie.prototype.removeInvalidLetterIndices = function (partialLetters) {
     const remaining = [];
     let helper = function (node, index, arr) {

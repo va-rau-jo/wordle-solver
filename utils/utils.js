@@ -1,28 +1,73 @@
-module.exports.genGuess = function (trie, correct, partial, wrong) {
-    // filter trie of wrong letters and partial letters (in wrong index)
+const USE_MOST_FREQUENT_OCCURRING = false;
+const USE_RARE_LETTERS = true;
 
-    // jaded
-    // alien -> dares -> fated -> waved -> caged -> maxed -> jaded
-    // dazed
-    // rates -> laced -> waved
-    // wrong = new Set();
-    // wrong.add('r');
-    // wrong.add('t');
-    // correct = [null, null, null, null, null];
-    // correct = [null, null, null, null, 's'];
-    // partial = new Map();
-    // partial.set('a', [1]);
-    // partial.set('l', [0]);
+const occurrences = require('../data/ocurrences');
 
-    console.log('1');
-    console.log(trie.find(''));
+// Returns a guess in hard mode (always reuse previous information)
+module.exports.genGuess = function (allWords, trie, correct, partial, wrong) {
     let t = trie.removeIfContains(wrong, correct, partial);
-    wrong.clear();
     t = trie.removeInvalidLetterIndices(partial);
-    let allWords = trie.removeIfDoesNotContain(correct, partial);
+    let remaining = trie.removeIfDoesNotContain(correct, partial);
+    wrong.clear();
     partial.clear();
     console.log(allWords);
 
+    if (USE_MOST_FREQUENT_OCCURRING) {
+      return genGuessHardModeMostFreqOccurring(remaining, correct, partial);   
+    } else if (USE_RARE_LETTERS) {
+      return genGuessHardModeRareLetters(remaining, correct, partial);
+    }
+};
+
+// Returns a guess in hard mode (always reuse previous information)
+module.exports.genGuessHardMode = function (trie, correct, partial, wrong) {
+    let t = trie.removeIfContains(wrong, correct, partial);
+    t = trie.removeInvalidLetterIndices(partial);
+    let allWords = trie.removeIfDoesNotContain(correct, partial);
+    wrong.clear();
+    partial.clear();
+    console.log(allWords);
+
+    if (USE_MOST_FREQUENT_OCCURRING) {
+      return genGuessHardModeMostFreqOccurring(allWords, correct, partial);   
+    } else if (USE_RARE_LETTERS) {
+      return genGuessHardModeRareLetters(allWords, correct, partial);
+    }
+};
+
+function genGuessHardModeRareLetters(allWords, correct, partial) {
+    let rankings = getLetterRanking(allWords, correct, partial);
+    let bestWord = '';
+    let bestScore = -100;
+
+    console.log(rankings);
+
+    allWords.forEach((word) => {
+        let rank = 0;
+        let used = new Set();
+        for (let i = 0; i < word.length; i++) {
+            if (used.has(word[i])) {
+                rank -= 5;
+            } else {//} if (!'aeiou'.includes(word[i])) {
+                let index = rankings.indexOf(word[i]);
+                rank += index === -1 ? 0 : index;
+                used.add(word[i]);
+            }
+            // } else {
+            //     used.add(word[i]);
+            // }
+        }
+        if (rank > bestScore) {
+            bestWord = word;
+            bestScore = rank;
+        }
+    });
+
+    console.log("BEST WORD: " + bestWord);
+    return bestWord;
+}
+
+function genGuessHardModeMostFreqOccurring(allWords, correct, partial) {
     let rankings = getLetterRanking(allWords, correct, partial);
     let bestWord = '';
     let bestScore = -1;
@@ -42,9 +87,10 @@ module.exports.genGuess = function (trie, correct, partial, wrong) {
             bestScore = rank;
         }
     });
-    console.log(bestWord);
+
+    console.log("BEST WORD: " + bestWord);
     return bestWord;
-};
+}
 
 // Returns a map with the letters left in the trie as the keys,
 // and their frequencies as their corresponding values
@@ -76,7 +122,11 @@ function getLetterRanking(words, correct, partial) {
     });
     // Sort all the letters by their frequency in remaining trie
     letters.sort((a, b) => {
-        return map.get(a) - map.get(b);
+        if (map.get(a) !== map.get(b)) {
+            return map.get(a) - map.get(b);
+        } else {
+            return occurrences.indexOf(b) - occurrences.indexOf(a);
+        }
     });
     return letters;
 }

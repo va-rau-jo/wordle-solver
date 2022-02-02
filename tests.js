@@ -1,10 +1,14 @@
 const Trie = require('./utils/trie');
 const answers = require('./data/answers');
 const testWords = require('./data/testwords');
+const words = require('./data/words');
 const utils = require('./utils/utils');
 
-const HARD_MODE = true;
-const FIRST_GUESS = 'rates';
+const HARD_MODE = false;
+// patterns to avoid:
+// - _ound
+// - _a_es
+const FIRST_GUESS = 'fling';
 const NUM_ROUNDS = 6;
 
 // 5 letter array containing correct letter placements
@@ -18,17 +22,31 @@ let wrongLetters;
 
 // Main execution function
 (function main() {
-    let data = testWords;
-    console.log(data);
-    for (let word of data) {
-        initializeState(data);
-        word = 'acabb';
+    let wordInputs = answers; // input space
+    let wordsToTest; // specific words to test (default is test all the input words)
+    if (process.argv.length > 2) { // can set command line arguments to test specific words
+        wordsToTest = process.argv.slice(2)[0].split(',');
+    } else {
+        wordsToTest = answers;
+    }
+    for (let word of wordsToTest) {
+        initializeState(wordInputs);
         console.log('WORD: ' + word);
 
         if (HARD_MODE) {
             mockGuess(FIRST_GUESS, word);
             for (let i = 1; i < NUM_ROUNDS; i++) {
-                mockGuess(utils.genGuess(trie, correctLetters, partialLetters, wrongLetters), word);
+                mockGuess(utils.genGuessHardMode(trie, correctLetters, partialLetters, wrongLetters), word);
+                if (isCorrect()) break;
+            }
+        } else {
+            allWords = new Trie();
+            for (let i = 0; i < wordInputs.length; i++) {
+                trie.add(wordInputs[i]);
+            }
+            mockGuess('alien', word);
+            for (let i = 1; i < NUM_ROUNDS; i++) {
+                mockGuess(utils.genGuess(allWords, trie, correctLetters, partialLetters, wrongLetters), word);
                 if (isCorrect()) break;
             }
         }
@@ -59,7 +77,7 @@ function mockGuess(guess, answer) {
                 mapAppend(correct, l);
             }
         }
-        console.log(correct);
+        // console.log(correct);
         const used = new Map();
         for (let i = 0; i < guess.length; i++) {
             const l = guess[i];
@@ -79,7 +97,6 @@ function mockGuess(guess, answer) {
                 }
             }
         }
-        printState();
     }
 }
 

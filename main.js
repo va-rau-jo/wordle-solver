@@ -49,7 +49,7 @@ let loop = true;
             if (HARD_MODE) {
                 while (!(await driver.isGameOver())) {
                     await makeGuess(
-                        utils.genGuess(trie, correctLetters, partialLetters, wrongLetters)
+                        utils.genGuessHardMode(trie, correctLetters, partialLetters, wrongLetters)
                     );
                 }
             } else {
