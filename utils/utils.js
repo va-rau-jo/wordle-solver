@@ -12,11 +12,35 @@ module.exports.genGuess = function (allWords, trie, correct, partial, wrong) {
     partial.clear();
     console.log(allWords);
 
-    if (USE_MOST_FREQUENT_OCCURRING) {
-      return genGuessHardModeMostFreqOccurring(remaining, correct, partial);   
-    } else if (USE_RARE_LETTERS) {
-      return genGuessHardModeRareLetters(remaining, correct, partial);
-    }
+    let rankings = getLetterRanking(allWords, correct, partial);
+    let bestWord = '';
+    let bestScore = -1000000;
+
+    console.log(rankings);
+
+    allWords.forEach((word) => {
+        let rank = 0;
+        let used = new Set();
+        for (let i = 0; i < word.length; i++) {
+            if (used.has(word[i])) {
+                rank -= 1000;
+            } else {//} if (!'aeiou'.includes(word[i])) {
+                let index = rankings.indexOf(word[i]);
+                rank += index === -1 ? 0 : index;
+                used.add(word[i]);
+            }
+            // } else {
+            //     used.add(word[i]);
+            // }
+        }
+        if (rank > bestScore) {
+            bestWord = word;
+            bestScore = rank;
+        }
+    });
+
+    console.log("BEST WORD: " + bestWord);
+    return bestWord;
 };
 
 // Returns a guess in hard mode (always reuse previous information)
