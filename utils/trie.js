@@ -90,15 +90,13 @@ function findAllWords(node, arr) {
   letter is in the right spot and is not in partialLetters.
   (Guessing 'amass' could return a correct 'a' and a wrong 'a')
   meaning there is only one a in the word, so don't remove words with 1 a.
- 
+
   @param wrongLetters A set of letters to remove on sight
   @param correctLetters A 5 letter array of letters in the right positions
   @param partialLetters A map mapping correct letters to their incorrect positions
-  @returns the words that remain after removing
 */
 Trie.prototype.removeIfContains = function (wrongLetters, correctLetters, partialLetters) {
-    const remaining = [];
-    let helper = function (node, index, arr) {
+    let helper = function (node, index) {
         if (
             wrongLetters.has(node.key) &&
             node.key !== correctLetters[index] &&
@@ -107,23 +105,20 @@ Trie.prototype.removeIfContains = function (wrongLetters, correctLetters, partia
             delete node.parent.children[node.key];
         } else {
             const keys = Object.keys(node.children);
-            if (keys.length === 0) {
-                arr.push(node.getWord());
-            } else {
+            if (keys.length > 0) {
                 for (let i = 0; i < keys.length; i++) {
-                    helper(node.children[keys[i]], index + 1, arr);
+                    helper(node.children[keys[i]], index + 1);
                 }
             }
         }
     };
-    helper(this.root, -1, remaining);
-    return remaining;
+    helper(this.root, -1);
 };
 
-/* 
+/*
   Removes any word that does not contain the correct letters in the correct spot
   or does not contain partial letters in any spot.
-  
+
   @param correctLetters A 5 letter array containing the correct letters in the correct spots
   @param partialLetters A map of partially correct letters to their invalid indices
   @return An array of the remaining words after filtering.
@@ -145,19 +140,20 @@ Trie.prototype.removeIfDoesNotContain = function (correctLetters, partialLetters
                     // letter found: not in invalid index, not in correct letters
                     // if the letter is both in correctLetters and partialLetters, we need
                     // the duplicated letter in our word
-                    if (word[i] === k && !v.includes(i) && correctLetters[i] !== word[i]) {
+                    if (word[i] === k) {
+                        // && !v.includes(i) && correctLetters[i] !== word[i]) {
                         letterFound = true;
                         break;
                     }
                 }
                 if (!letterFound) {
-                    // console.log("didnt find letter " + k);
+                    // console.log('didnt find letter ' + k);
                     valid = false;
                     break;
                 }
             }
             if (!valid) {
-                // console.log("NOT VALID: " + node.getWord());
+                // console.log('NOT VALID: ' + node.getWord());
                 delete lastOneChildParent.children[word[lastOneChildParentIndex]];
             } else {
                 arr.push(node.getWord());
@@ -185,30 +181,26 @@ Trie.prototype.removeIfDoesNotContain = function (correctLetters, partialLetters
     return remaining;
 };
 
-/* 
+/*
   Recursively removes words if they have the given letters in an invalid index
-  
+
   @param partialLetters A map of partially correct letters to their invalid indices
   @returns the words that remain after removing
 */
 Trie.prototype.removeInvalidLetterIndices = function (partialLetters) {
-    const remaining = [];
-    let helper = function (node, index, arr) {
+    let helper = function (node, index) {
         if (partialLetters.has(node.key) && partialLetters.get(node.key).includes(index)) {
             delete node.parent.children[node.key];
         } else {
             const keys = Object.keys(node.children);
-            if (keys.length === 0) {
-                arr.push(node.getWord());
-            } else {
+            if (keys.length > 0) {
                 for (let i = 0; i < keys.length; i++) {
-                    helper(node.children[keys[i]], index + 1, arr);
+                    helper(node.children[keys[i]], index + 1);
                 }
             }
         }
     };
-    helper(this.root, -1, remaining);
-    return remaining;
+    helper(this.root, -1);
 };
 
 module.exports = Trie;

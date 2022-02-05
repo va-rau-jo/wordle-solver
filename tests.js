@@ -7,14 +7,14 @@ const utils = require('./utils/utils');
 const HARD_MODE = false;
 // patterns to avoid:
 // - _ound
-// - _a_es
-const FIRST_GUESS = 'fling';
+const FIRST_GUESS = 'alien';
 const NUM_ROUNDS = 6;
 
 // 5 letter array containing correct letter placements
 let correctLetters;
 // Map mapping found letters to the indices that they were misplaced in.
 let partialLetters;
+let allPartialLetters;
 // Trie of all possible words
 let trie;
 // Set of wrong letters after the current guess
@@ -24,7 +24,8 @@ let wrongLetters;
 (function main() {
     let wordInputs = answers; // input space
     let wordsToTest; // specific words to test (default is test all the input words)
-    if (process.argv.length > 2) { // can set command line arguments to test specific words
+    if (process.argv.length > 2) {
+        // can set command line arguments to test specific words
         wordsToTest = process.argv.slice(2)[0].split(',');
     } else {
         wordsToTest = answers;
@@ -36,18 +37,43 @@ let wrongLetters;
         if (HARD_MODE) {
             mockGuess(FIRST_GUESS, word);
             for (let i = 1; i < NUM_ROUNDS; i++) {
-                mockGuess(utils.genGuessHardMode(trie, correctLetters, partialLetters, wrongLetters), word);
+                mockGuess(
+                    utils.genGuessHardMode(trie, correctLetters, partialLetters, wrongLetters),
+                    word
+                );
                 if (isCorrect()) break;
             }
         } else {
-            allWords = new Trie();
-            for (let i = 0; i < wordInputs.length; i++) {
-                trie.add(wordInputs[i]);
-            }
+            // allWords = new Trie();
+            // for (let i = 0; i < wordInputs.length; i++) {
+            //     allWords.add(wordInputs[i]);
+            // }
             mockGuess('alien', word);
-            for (let i = 1; i < NUM_ROUNDS; i++) {
-                mockGuess(utils.genGuess(allWords, trie, correctLetters, partialLetters, wrongLetters), word);
-                if (isCorrect()) break;
+            utils.filterTrie(trie, correctLetters, partialLetters, wrongLetters);
+            if (!isCorrect()) {
+                mockGuess('tours', word);
+                utils.filterTrie(trie, correctLetters, partialLetters, wrongLetters);
+                if (!isCorrect()) {
+                    for (let i = 1; i < NUM_ROUNDS; i++) {
+                        let remaining = utils.filterTrie(
+                            trie,
+                            correctLetters,
+                            partialLetters,
+                            wrongLetters
+                        );
+                        mockGuess(
+                            utils.genGuess(
+                                wordInputs,
+                                remaining,
+                                correctLetters,
+                                partialLetters,
+                                allPartialLetters
+                            ),
+                            word
+                        );
+                        if (isCorrect()) break;
+                    }
+                }
             }
         }
 
@@ -68,7 +94,7 @@ function mockGuess(guess, answer) {
     if (!guess) {
         console.log('NO GUESS MADE FOR ' + answer);
     } else {
-        console.log('guessing ' + guess);
+        // console.log('guessing ' + guess);
         const correct = new Map();
         for (let i = 0; i < guess.length; i++) {
             const l = guess[i];
@@ -81,6 +107,12 @@ function mockGuess(guess, answer) {
         const used = new Map();
         for (let i = 0; i < guess.length; i++) {
             const l = guess[i];
+            if (allPartialLetters.has(l) && !allPartialLetters.get(l).includes(i)) {
+                allPartialLetters.get(l).push(i);
+            } else if (!allPartialLetters.has(l)) {
+                allPartialLetters.set(l, [i]);
+            }
+
             if (l !== answer[i]) {
                 // "Uses" left of our letter. Removes correctly used instances of the letter
                 // and any partial uses we've made so far
@@ -132,6 +164,7 @@ function initializeState(data) {
     initializeTrie(data);
     correctLetters = new Array(5).fill(null);
     partialLetters = new Map();
+    allPartialLetters = new Map();
     rowNum = 0;
     wrongLetters = new Set();
 }
@@ -144,6 +177,7 @@ function initializeTrie(data) {
 }
 
 function printState() {
+    console.log(allPartialLetters);
     console.log(correctLetters);
     console.log(partialLetters);
     console.log(wrongLetters);

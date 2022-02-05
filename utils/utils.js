@@ -3,76 +3,83 @@ const USE_RARE_LETTERS = true;
 
 const occurrences = require('../data/ocurrences');
 
-// Returns a guess in hard mode (always reuse previous information)
-module.exports.genGuess = function (allWords, trie, correct, partial, wrong) {
-    let t = trie.removeIfContains(wrong, correct, partial);
+module.exports.filterTrie = function (trie, correct, partial, wrong) {
+    // console.log('STEP 0');
+    // console.log(trie.find(''));
+    trie.removeIfContains(wrong, correct, partial);
+    // console.log('STEP 1');
+    // console.log(trie.find(''));
     t = trie.removeInvalidLetterIndices(partial);
+    // console.log('STEP 2');
+    // console.log(trie.find(''));
     let remaining = trie.removeIfDoesNotContain(correct, partial);
+    // console.log('STEP 3');
+    // console.log(remaining);
     wrong.clear();
     partial.clear();
-    console.log(allWords);
+    return remaining;
+};
 
-    let rankings = getLetterRanking(allWords, correct, partial);
+// Returns a guess in hard mode (always reuse previous information)
+module.exports.genGuess = function (allWords, remainingWords, correct, partial, allPartial) {
+    if (remainingWords.length <= 2) {
+        return remainingWords[0];
+    }
+
+    let occurrences = getLetterOccurrences(remainingWords, correct, partial);
+    let rankings = getLetterRanking(remainingWords, correct, partial).reverse();
     let bestWord = '';
     let bestScore = -1000000;
-
-    console.log(rankings);
 
     allWords.forEach((word) => {
         let rank = 0;
         let used = new Set();
         for (let i = 0; i < word.length; i++) {
-            if (used.has(word[i])) {
-                rank -= 1000;
-            } else {//} if (!'aeiou'.includes(word[i])) {
-                let index = rankings.indexOf(word[i]);
-                rank += index === -1 ? 0 : index;
+            let letterPosGuessed = allPartial.has(word[i]) && allPartial.get(word[i]).includes(i);
+            if (!letterPosGuessed && !used.has(word[i]) && rankings.includes(word[i])) {
                 used.add(word[i]);
+                if (
+                    occurrences.get(word[i]) <= remainingWords.length / 2 ||
+                    remainingWords.length < 6
+                ) {
+                    rank += occurrences.get(word[i]);
+                }
             }
-            // } else {
-            //     used.add(word[i]);
-            // }
         }
         if (rank > bestScore) {
             bestWord = word;
             bestScore = rank;
         }
     });
-
-    console.log("BEST WORD: " + bestWord);
     return bestWord;
 };
 
 // Returns a guess in hard mode (always reuse previous information)
 module.exports.genGuessHardMode = function (trie, correct, partial, wrong) {
-    let t = trie.removeIfContains(wrong, correct, partial);
-    t = trie.removeInvalidLetterIndices(partial);
-    let allWords = trie.removeIfDoesNotContain(correct, partial);
-    wrong.clear();
-    partial.clear();
-    console.log(allWords);
+    let remaining = this.filterTrie(trie, correct, partial, wrong);
 
     if (USE_MOST_FREQUENT_OCCURRING) {
-      return genGuessHardModeMostFreqOccurring(allWords, correct, partial);   
+        return genGuessHardModeMostFreqOccurring(remaining, correct, partial);
     } else if (USE_RARE_LETTERS) {
-      return genGuessHardModeRareLetters(allWords, correct, partial);
+        return genGuessHardModeRareLetters(remaining, correct, partial);
     }
 };
 
-function genGuessHardModeRareLetters(allWords, correct, partial) {
-    let rankings = getLetterRanking(allWords, correct, partial);
+function genGuessHardModeRareLetters(words, correct, partial) {
+    let rankings = getLetterRanking(words, correct, partial);
     let bestWord = '';
     let bestScore = -100;
 
     console.log(rankings);
 
-    allWords.forEach((word) => {
+    words.forEach((word) => {
         let rank = 0;
         let used = new Set();
         for (let i = 0; i < word.length; i++) {
             if (used.has(word[i])) {
                 rank -= 5;
-            } else {//} if (!'aeiou'.includes(word[i])) {
+            } else {
+                //} if (!'aeiou'.includes(word[i])) {
                 let index = rankings.indexOf(word[i]);
                 rank += index === -1 ? 0 : index;
                 used.add(word[i]);
@@ -87,16 +94,16 @@ function genGuessHardModeRareLetters(allWords, correct, partial) {
         }
     });
 
-    console.log("BEST WORD: " + bestWord);
+    console.log('BEST WORD: ' + bestWord);
     return bestWord;
 }
 
-function genGuessHardModeMostFreqOccurring(allWords, correct, partial) {
-    let rankings = getLetterRanking(allWords, correct, partial);
+function genGuessHardModeMostFreqOccurring(words, correct, partial) {
+    let rankings = getLetterRanking(words, correct, partial);
     let bestWord = '';
     let bestScore = -1;
 
-    allWords.forEach((word) => {
+    words.forEach((word) => {
         let rank = 0;
         let used = new Set();
         for (let i = 0; i < word.length; i++) {
@@ -112,7 +119,7 @@ function genGuessHardModeMostFreqOccurring(allWords, correct, partial) {
         }
     });
 
-    console.log("BEST WORD: " + bestWord);
+    console.log('BEST WORD: ' + bestWord);
     return bestWord;
 }
 
