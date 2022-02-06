@@ -2,15 +2,14 @@ const Trie = require('./utils/trie');
 const words = require('./data/answers');
 const utils = require('./utils/utils');
 
-const HARD_MODE = false;
 const NUM_ROUNDS = 6;
 
 // 5 letter array containing correct letter placements
 let correctLetters;
 // Map mapping found letters to the indices that they were misplaced in.
-let partialLetters;
-// Aggregated partial letters for all rounds
-let allPartialLetters;
+let presentLetters;
+// Aggregated present letters for all rounds
+let allGuesses;
 // Trie of all possible words
 let trie;
 // Set of wrong letters after the current guess
@@ -30,44 +29,29 @@ let wrongLetters;
         initializeState(wordInputs);
         console.log('WORD: ' + word);
 
-        if (HARD_MODE) {
-            mockGuess('alien', word);
+        mockGuess('alien', word);
+        utils.filterTrie(trie, correctLetters, presentLetters, wrongLetters);
+        if (!isCorrect()) {
             for (let i = 1; i < NUM_ROUNDS; i++) {
+                let remaining = utils.filterTrie(
+                    trie,
+                    correctLetters,
+                    presentLetters,
+                    wrongLetters
+                );
                 mockGuess(
-                    utils.genGuessHardMode(trie, correctLetters, partialLetters, wrongLetters),
+                    utils.genGuess(
+                        wordInputs,
+                        remaining,
+                        correctLetters,
+                        presentLetters,
+                        allGuesses,
+                        NUM_ROUNDS - i
+                    ),
                     word
                 );
                 if (isCorrect()) break;
             }
-        } else {
-            mockGuess('alien', word);
-            utils.filterTrie(trie, correctLetters, partialLetters, wrongLetters);
-            if (!isCorrect()) {
-                // mockGuess('tours', word);
-                // utils.filterTrie(trie, correctLetters, partialLetters, wrongLetters);
-                // if (!isCorrect()) {
-                for (let i = 1; i < NUM_ROUNDS; i++) {
-                    let remaining = utils.filterTrie(
-                        trie,
-                        correctLetters,
-                        partialLetters,
-                        wrongLetters
-                    );
-                    mockGuess(
-                        utils.genGuess(
-                            wordInputs,
-                            remaining,
-                            correctLetters,
-                            partialLetters,
-                            allPartialLetters,
-                            NUM_ROUNDS - i
-                        ),
-                        word
-                    );
-                    if (isCorrect()) break;
-                }
-            }
-            // }
         }
 
         if (isCorrect()) {
@@ -84,42 +68,36 @@ function isCorrect() {
 }
 
 function mockGuess(guess, answer) {
-    if (!guess) {
-        console.log('NO GUESS MADE FOR ' + answer);
-    } else {
-        console.log('guessing ' + guess);
-        const correct = new Map();
-        for (let i = 0; i < guess.length; i++) {
-            const l = guess[i];
-            if (l === answer[i]) {
-                correctLetters[i] = l;
-                mapAppend(correct, l);
-            }
+    const correct = new Map();
+    for (let i = 0; i < guess.length; i++) {
+        const l = guess[i];
+        if (l === answer[i]) {
+            correctLetters[i] = l;
+            mapAppend(correct, l);
         }
-        // console.log(correct);
-        const used = new Map();
-        for (let i = 0; i < guess.length; i++) {
-            const l = guess[i];
-            if (allPartialLetters.has(l) && !allPartialLetters.get(l).includes(i)) {
-                allPartialLetters.get(l);
-            } else if (!allPartialLetters.has(l)) {
-                allPartialLetters.set(l, [i]);
-            }
+    }
+    const used = new Map();
+    for (let i = 0; i < guess.length; i++) {
+        const l = guess[i];
+        if (allGuesses.has(l) && !allGuesses.get(l).includes(i)) {
+            allGuesses.get(l);
+        } else if (!allGuesses.has(l)) {
+            allGuesses.set(l, [i]);
+        }
 
-            if (l !== answer[i]) {
-                // "Uses" left of our letter. Removes correctly used instances of the letter
-                // and any partial uses we've made so far
-                let count = countOccurrences(answer, l) - (mapGet(used, l) + mapGet(correct, l));
-                if ((!used.has(l) && count > 0) || used.get(l) < count) {
-                    if (partialLetters.has(l)) {
-                        partialLetters.get(l).push(i);
-                    } else {
-                        partialLetters.set(l, [i]);
-                    }
-                    mapAppend(used, l);
+        if (l !== answer[i]) {
+            // "Uses" left of our letter. Removes correctly used instances of the letter
+            // and any present uses we've made so far
+            let count = countOccurrences(answer, l) - (mapGet(used, l) + mapGet(correct, l));
+            if ((!used.has(l) && count > 0) || used.get(l) < count) {
+                if (presentLetters.has(l)) {
+                    presentLetters.get(l).push(i);
                 } else {
-                    wrongLetters.add(l);
+                    presentLetters.set(l, [i]);
                 }
+                mapAppend(used, l);
+            } else {
+                wrongLetters.add(l);
             }
         }
     }
@@ -154,24 +132,14 @@ function countOccurrences(word, letter) {
 
 // Initialize state to start a new wordle game
 function initializeState(data) {
-    initializeTrie(data);
-    correctLetters = new Array(5).fill(null);
-    partialLetters = new Map();
-    allPartialLetters = new Map();
-    rowNum = 0;
-    wrongLetters = new Set();
-}
-
-function initializeTrie(data) {
     trie = new Trie();
     for (let i = 0; i < data.length; i++) {
         trie.add(data[i]);
     }
-}
 
-function printState() {
-    console.log(allPartialLetters);
-    console.log(correctLetters);
-    console.log(partialLetters);
-    console.log(wrongLetters);
+    correctLetters = new Array(5).fill(null);
+    presentLetters = new Map();
+    allGuesses = new Map();
+    rowNum = 0;
+    wrongLetters = new Set();
 }
