@@ -1,6 +1,7 @@
 ## Preview
 
-[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://www.youtube.com/watch?v=1_51c_6ueUY)
+https://user-images.githubusercontent.com/29563696/152700458-5a4af531-be6c-425b-815e-4868c7f484c7.mp4
+
 
 ### Using Selinum
 
