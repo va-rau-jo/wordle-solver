@@ -3,15 +3,12 @@ require('chromedriver');
 
 const BrowserDriver = require('./utils/browserDriver');
 const Trie = require('./utils/trie');
-const answers = require('./data/answers');
+const words = require('./data/answers');
 const testWords = require('./data/testwords');
 const utils = require('./utils/utils');
-const words = require('./data/words');
 
-// const FIRST_GUESS = 'alien';
-const FIRST_GUESS = 'rates';
-const HARD_MODE = true;
-const SECOND_GUESS = 'tours';
+const HARD_MODE = false;
+const NUM_ROUNDS = 6;
 const WORD_SIZE = 5;
 
 // CSS class names for correct (green), partial (yellow), and wrong (gray) letters.
@@ -30,6 +27,8 @@ let correctLetters;
 let driver = new BrowserDriver();
 // Map mapping found letters to the indices that they were misplaced in.
 let partialLetters;
+// Aggregated partial letters for all rounds
+let allPartialLetters;
 // The current row we are on
 let rowNum;
 // Trie of all possible words
@@ -45,18 +44,41 @@ let loop = true;
     while (loop) {
         initializeState();
         try {
-            await makeGuess(FIRST_GUESS);
             if (HARD_MODE) {
+                await makeGuess('rates');
                 while (!(await driver.isGameOver())) {
                     await makeGuess(
                         utils.genGuessHardMode(trie, correctLetters, partialLetters, wrongLetters)
                     );
                 }
             } else {
-                if (!(await driver.isGameOver())) {
-                    await makeGuess(SECOND_GUESS);
-                    while (!(await driver.isGameOver())) {
-                        await makeGuess(genNextGuess());
+                console.log('making guess');
+                makeGuess('alien');
+                console.log('guess made');
+                utils.filterTrie(trie, correctLetters, partialLetters, wrongLetters);
+                if (!isCorrect()) {
+                    console.log('not right');
+                    makeGuess('tours');
+                    utils.filterTrie(trie, correctLetters, partialLetters, wrongLetters);
+                    if (!isCorrect()) {
+                        for (let i = 2; i < NUM_ROUNDS; i++) {
+                            let remaining = utils.filterTrie(
+                                trie,
+                                correctLetters,
+                                partialLetters,
+                                wrongLetters
+                            );
+                            makeGuess(
+                                utils.genGuess(
+                                    words,
+                                    remaining,
+                                    correctLetters,
+                                    partialLetters,
+                                    allPartialLetters
+                                )
+                            );
+                            if (isCorrect()) break;
+                        }
                     }
                 }
             }
@@ -80,18 +102,29 @@ let loop = true;
     }
 })();
 
+function isCorrect() {
+    return !correctLetters.includes(null);
+}
+
 // Makes a guess given "guess". Updates correctLetters, partialLetters, and wrongLetters
 // with our new information.
 async function makeGuess(guess) {
     let element = await driver.getActiveElement();
     for (let i = 0; i < WORD_SIZE; i++) {
         await element.sendKeys(guess[i]); // Individually sends keys so browser keeps up.
+        await utils.timeout(500);
     }
     element.sendKeys(Key.RETURN);
     for (let i = 0; i < WORD_SIZE; i++) {
         let firstRowGuess = await driver.getLetterByIndex(rowNum * 5 + i + 1);
         let cName = await firstRowGuess.getAttribute('class');
         let letter = (await firstRowGuess.getAttribute('textContent')).toLowerCase();
+
+        if (allPartialLetters.has(letter) && !allPartialLetters.get(letter).includes(i)) {
+            allPartialLetters.get(letter).push(i);
+        } else if (!allPartialLetters.has(letter)) {
+            allPartialLetters.set(letter, [i]);
+        }
 
         if (cName.startsWith(Guess.GRAY)) {
             wrongLetters.add(letter);
@@ -114,12 +147,13 @@ function initializeState() {
     initializeTrie();
     correctLetters = new Array(5).fill(null);
     partialLetters = new Map();
+    allPartialLetters = new Map();
     rowNum = 0;
     wrongLetters = new Set();
 }
 
 function initializeTrie() {
-    let data = answers;
+    let data = words;
     trie = new Trie();
     for (let i = 0; i < data.length; i++) {
         trie.add(data[i]);

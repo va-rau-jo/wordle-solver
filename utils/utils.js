@@ -15,14 +15,46 @@ module.exports.filterTrie = function (trie, correct, partial, wrong) {
     let remaining = trie.removeIfDoesNotContain(correct, partial);
     // console.log('STEP 3');
     // console.log(remaining);
-    wrong.clear();
+    // wrong.clear();
     partial.clear();
+
+    console.log('COMPLETING');
+    if (remaining.length > 0) {
+        let removed = 0;
+        let common = remaining[0];
+        for (let i = 1; i < remaining.length; i++) {
+            for (let j = 0; j < remaining[i].length; j++) {
+                if (removed === 5) {
+                    break;
+                } else if (common[j] !== '.' && remaining[i][j] !== common[j]) {
+                    common = common.substring(0, j) + '.' + common.substring(j + 1);
+                    removed++;
+                }
+            }
+        }
+
+        if (common.length > 0) {
+            for (let i = 0; i < common.length; i++) {
+                if (common[i] !== '.') {
+                    correct[i] = common[i];
+                }
+            }
+        }
+    }
+
     return remaining;
 };
 
 // Returns a guess in hard mode (always reuse previous information)
-module.exports.genGuess = function (allWords, remainingWords, correct, partial, allPartial) {
-    if (remainingWords.length <= 2) {
+module.exports.genGuess = function (
+    allWords,
+    remainingWords,
+    correct,
+    partial,
+    allPartial,
+    roundsLeft
+) {
+    if (remainingWords.length <= roundsLeft) {
         return remainingWords[0];
     }
 
@@ -31,16 +63,32 @@ module.exports.genGuess = function (allWords, remainingWords, correct, partial, 
     let bestWord = '';
     let bestScore = -1000000;
 
+    // console.log(remainingWords);
+    // console.log(correct);
+    // console.log(occurrences);
+    // console.log(rankings);
+
     allWords.forEach((word) => {
         let rank = 0;
         let used = new Set();
         for (let i = 0; i < word.length; i++) {
+            // We have guessed this letter at this same position before, so don't do it again (wasted info)
             let letterPosGuessed = allPartial.has(word[i]) && allPartial.get(word[i]).includes(i);
-            if (!letterPosGuessed && !used.has(word[i]) && rankings.includes(word[i])) {
+            // first m in mummy is only helpful if tried in the first slot, otherwise it might be incating the other m's
+            let validSlotNeeded = correct.includes(word[i]);
+
+            if (
+                !letterPosGuessed &&
+                !used.has(word[i]) &&
+                rankings.includes(word[i]) &&
+                (!validSlotNeeded || correct[i] == null)
+            ) {
                 used.add(word[i]);
+                let useMostAlways = roundsLeft > 2 || remainingWords.length < 6;
                 if (
-                    occurrences.get(word[i]) <= remainingWords.length / 2 ||
-                    remainingWords.length < 6
+                    useMostAlways ||
+                    (!correct.includes(word[i]) &&
+                        occurrences.get(word[i]) <= remainingWords.length / 2)
                 ) {
                     rank += occurrences.get(word[i]);
                 }
@@ -69,8 +117,6 @@ function genGuessHardModeRareLetters(words, correct, partial) {
     let rankings = getLetterRanking(words, correct, partial);
     let bestWord = '';
     let bestScore = -100;
-
-    console.log(rankings);
 
     words.forEach((word) => {
         let rank = 0;
