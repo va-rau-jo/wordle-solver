@@ -34,12 +34,13 @@ let wrong;
 (async function main() {
     await driver.init();
     await driver.skipHowToPlay();
-    while (true) {
+    let loop = true;
+    while (loop) {
         initializeState();
         try {
             await makeGuess('alien');
             utils.filterTrie(trie, correct, present, wrong);
-            if (!isCorrect()) {
+            if (!(await driver.isWordCorrect())) {
                 for (let i = 1; i < NUM_ROUNDS; i++) {
                     let remaining = utils.filterTrie(trie, correct, present, wrong);
                     await makeGuess(
@@ -52,20 +53,16 @@ let wrong;
                             NUM_ROUNDS - i
                         )
                     );
-                    if (isCorrect()) break;
+                    if (await driver.isWordCorrect()) break;
                 }
             }
+            await utils.timeout(1000);
             await driver.clickPlayAgain();
-        } catch (e) {
+        } catch (_) {
             loop = false;
-            console.log(e);
         }
     }
 })();
-
-function isCorrect() {
-    return !correct.includes(null);
-}
 
 // Makes a guess given "guess". Updates correctLetters, presentLetters, and wrongLetters
 // with our new information.

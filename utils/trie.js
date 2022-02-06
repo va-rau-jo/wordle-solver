@@ -147,13 +147,11 @@ Trie.prototype.removeIfDoesNotContain = function (correctLetters, presentLetters
                     }
                 }
                 if (!letterFound) {
-                    // console.log('didnt find letter ' + k);
                     valid = false;
                     break;
                 }
             }
             if (!valid) {
-                // console.log('NOT VALID: ' + node.getWord());
                 delete lastOneChildParent.children[word[lastOneChildParentIndex]];
             } else {
                 arr.push(node.getWord());

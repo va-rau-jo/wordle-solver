@@ -52,10 +52,8 @@ BrowserDriver.prototype.isGameOver = async function () {
 BrowserDriver.prototype.isWordCorrect = async function () {
     try {
         let element = await this.driver.findElement(By.css(SUCCESS_SELECTOR));
-        return (await element.getAttribute('textContent')) === 'Congrats!';
-    } catch (e) {
-        console.log(e);
-    }
+        return (await element.getAttribute('textContent')).includes('Congrats!');
+    } catch (_) {}
 };
 
 // Closes the browser
