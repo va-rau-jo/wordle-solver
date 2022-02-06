@@ -1,6 +1,6 @@
 ## Preview
 
-https://user-images.githubusercontent.com/29563696/152700458-5a4af531-be6c-425b-815e-4868c7f484c7.mp4
+https://user-images.githubusercontent.com/29563696/152700479-2194c513-3a24-477e-93e2-a60dc52837d5.mp4
 
 
 ### Using Selinum
