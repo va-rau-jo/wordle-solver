@@ -101,18 +101,14 @@ async function makeGuess(guess) {
 
 // Initialize state to start a new wordle game
 function initializeState() {
-    initializeTrie();
+    trie = new Trie();
+    for (let i = 0; i < words.length; i++) {
+        trie.add(words[i]);
+    }
+
     correct = new Array(5).fill(null);
     present = new Map();
     allGuesses = new Map();
     rowNum = 0;
     wrong = new Set();
-}
-
-function initializeTrie() {
-    let data = words;
-    trie = new Trie();
-    for (let i = 0; i < data.length; i++) {
-        trie.add(data[i]);
-    }
 }

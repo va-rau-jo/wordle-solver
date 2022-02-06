@@ -43,7 +43,7 @@ BrowserDriver.prototype.isGameOver = async function () {
     try {
         await this.driver.findElement(By.css(MODAL_OPEN_SELECTOR));
         return true;
-    } catch (e) {
+    } catch (_) {
         return false;
     }
 };
